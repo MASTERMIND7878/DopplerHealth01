@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Device Emergency Chat</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .header {
+            background-color: #1877f2;
+            color: white;
+            padding: 15px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .chat-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background-color: #f0f2f5;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 10px;
+            border-radius: 10px;
+            max-width: 70%;
+        }
+
+        .device-message {
+            background-color: #e5e5ea;
+            align-self: flex-start;
+        }
+
+        .user-message {
+            background-color: #0078ff;
+            color: white;
+            align-self: flex-end;
+        }
+
+        .device-status {
+            text-align: center;
+            margin: 10px 0;
+            color: #888;
+        }
+
+        .emergency-controls {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px;
+            background-color: white;
+        }
+
+        #devicePhoneInput {
+            flex-grow: 1;
+            margin-right: 10px;
+            padding: 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h2>Device Emergency Chat</h2>
+        <button onclick="window.location.href='main.html'">🏠 Home</button>
+    </div>
+
+    <div class="chat-container" id="chatContainer">
+        <div class="device-status" id="deviceConnectionStatus">
+            Device Not Connected
+        </div>
+    </div>
+
+    <div class="emergency-controls">
+        <input type="tel" id="devicePhoneInput" placeholder="Register Emergency Phone Number">
+        <button onclick="registerEmergencyPhone()">Save Number</button>
+    </div>
+
+    <script>
+        class DeviceCommunication {
+            constructor() {
+                this.emergencyPhone = '';
+                this.websocket = null;
+                this.initWebSocket();
+            }
+
+            initWebSocket() {
+                // WebSocket connection (replace with your actual WebSocket server)
+                this.websocket = new WebSocket('ws://your-websocket-server.com');
+
+                this.websocket.onopen = () => {
+                    this.updateConnectionStatus('Device Connected', true);
+                };
+
+                this.websocket.onmessage = (event) => {
+                    this.handleDeviceMessage(event.data);
+                };
+
+                this.websocket.onclose = () => {
+                    this.updateConnectionStatus('Device Disconnected', false);
+                };
+            }
+
+            updateConnectionStatus(message, isConnected) {
+                const statusElement = document.getElementById('deviceConnectionStatus');
+                statusElement.textContent = message;
+                statusElement.style.color = isConnected ? 'green' : 'red';
+            }
+
+            handleDeviceMessage(message) {
+                // Special handling for different types of messages
+                if (message.startsWith('EMERGENCY:')) {
+                    this.addEmergencyMessage(message.replace('EMERGENCY:', ''));
+                    this.initiateEmergencyCall();
+                } else if (message.startsWith('GPS:')) {
+                    this.addDeviceMessage('Location Update: ' + message.replace('GPS:', ''));
+                } else {
+                    this.addDeviceMessage(message);
+                }
+            }
+
+            addDeviceMessage(message) {
+                const chatContainer = document.getElementById('chatContainer');
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message device-message';
+                messageDiv.textContent = message;
+                chatContainer.appendChild(messageDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            addEmergencyMessage(message) {
+                const chatContainer = document.getElementById('chatContainer');
+                const emergencyDiv = document.createElement('div');
+                emergencyDiv.className = 'message device-message';
+                emergencyDiv.style.backgroundColor = 'red';
+                emergencyDiv.style.color = 'white';
+                emergencyDiv.textContent = `🚨 EMERGENCY: ${message}`;
+                chatContainer.appendChild(emergencyDiv);
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+
+            registerEmergencyPhone() {
+                const phoneInput = document.getElementById('devicePhoneInput');
+                const phoneNumber = phoneInput.value;
+
+                if (this.validatePhoneNumber(phoneNumber)) {
+                    this.emergencyPhone = phoneNumber;
+                    localStorage.setItem('emergencyPhone', phoneNumber);
+                    alert('Emergency Phone Number Saved');
+
+                    // Optionally send to device via WebSocket
+                    this.websocket.send(`REGISTER_PHONE:${phoneNumber}`);
+                } else {
+                    alert('Invalid Phone Number');
+                }
+            }
+
+            validatePhoneNumber(phone) {
+                // Basic phone number validation
+                const phoneRegex = /^[0-9]{10}$/;
+                return phoneRegex.test(phone);
+            }
+
+            initiateEmergencyCall() {
+                if (this.emergencyPhone) {
+                    // Implement actual call functionality here
+                    console.log(`Calling emergency number: ${this.emergencyPhone}`);
+                    alert(`Emergency Call Initiated to ${this.emergencyPhone}`);
+                } else {
+                    alert('Please register an emergency phone number first');
+                }
+            }
+        }
+
+        // Initialize device communication on page load
+        document.addEventListener('DOMContentLoaded', () => {
+            window.deviceComm = new DeviceCommunication();
+        });
+    </script>
+</body>
+
+</html>

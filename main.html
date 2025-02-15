@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GPS Tracker</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body {
+            margin: 0;
+            font-family: Arial, sans-serif;
+        }
+
+        #map {
+            height: calc(100vh - 60px);
+        }
+
+        .header {
+            height: 60px;
+            background: #1877f2;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 20px;
+        }
+
+        .nav-icons {
+            display: flex;
+            gap: 20px;
+        }
+
+        .nav-icon {
+            cursor: pointer;
+            font-size: 24px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="header">
+        <h2>GPS Tracker</h2>
+        <div class="nav-icons">
+            <div class="nav-icon" onclick="window.location.href='chat.html'">💬</div>
+            <div class="nav-icon" onclick="window.location.href='index.html'">🏠</div>
+        </div>
+    </div>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        // Robust map initialization
+        class GPSTracker {
+            constructor() {
+                this.map = null;
+                this.marker = null;
+                this.initMap();
+            }
+
+            initMap() {
+                // Ensure map container exists
+                if (!document.getElementById('map')) return;
+
+                // More robust map initialization
+                this.map = L.map('map', {
+                    center: [0, 0],
+                    zoom: 2,
+                    minZoom: 2,
+                    maxZoom: 18
+                });
+
+                // Added multiple tile layers for reliability
+                const tileLayers = [
+                    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                        attribution: '© OpenStreetMap contributors'
+                    }),
+                    L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}', {
+                        attribution: 'Tiles © Esri'
+                    })
+                ];
+
+                // Add first tile layer
+                tileLayers[0].addTo(this.map);
+
+                // Fallback mechanism
+                this.map.on('tileerror', (error, tile) => {
+                    console.warn('Tile loading error, switching layer');
+                    this.map.removeLayer(tileLayers[0]);
+                    tileLayers[1].addTo(this.map);
+                });
+            }
+
+            updateLocation(lat, lng) {
+                if (!this.map) return;
+
+                // Remove existing marker
+                if (this.marker) {
+                    this.map.removeLayer(this.marker);
+                }
+
+                // Create new marker with more details
+                this.marker = L.marker([lat, lng]).addTo(this.map);
+
+                // Smooth pan and zoom
+                this.map.setView([lat, lng], 15, {
+                    animate: true,
+                    duration: 1
+                });
+
+                // Add popup with coordinates
+                this.marker.bindPopup(`Lat: ${lat.toFixed(4)}, Lng: ${lng.toFixed(4)}`).openPopup();
+            }
+
+            connectToESP32() {
+                // Simulate GPS data (replace with actual WebSocket)
+                setInterval(() => {
+                    const lat = Math.random() * 180 - 90;
+                    const lng = Math.random() * 360 - 180;
+                    this.updateLocation(lat, lng);
+                }, 5000);
+            }
+        }
+
+        // Initialize tracker when page loads
+        window.addEventListener('load', () => {
+            const tracker = new GPSTracker();
+            tracker.connectToESP32();
+        });
+    </script>
+</body>
+
+</html>
